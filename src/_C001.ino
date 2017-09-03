@@ -94,10 +94,10 @@ boolean CPlugin_001(byte function, struct EventStruct *event, String& string)
               url += F(";");
               url += humStat(UserVar[event->BaseVarIndex + 1]);
               break;
-            case SENSOR_TYPE_TEMP_BARO:                      // temp + hum + hum_stat + bar + bar_fore, used for BMP085
+            case SENSOR_TYPE_TEMP_BARO:                      // temp + bar + bar_fore , used for BMP085
               url += F("&svalue=");
               url += toString(UserVar[event->BaseVarIndex], ExtraTaskSettings.TaskDeviceValueDecimals[0]);
-              url += F(";0;0;");
+              url += F(";");
               url += toString(UserVar[event->BaseVarIndex + 1], ExtraTaskSettings.TaskDeviceValueDecimals[1]);
               url += F(";0");
               break;
@@ -218,9 +218,9 @@ int humStat(int hum){
   int lHumStat;
   if(hum<30){
      lHumStat = 2;
-  }else if(hum<40){
+  }else if(hum<45){
     lHumStat = 0;
-  }else if(hum<59){
+  }else if(hum<70){
     lHumStat = 1;
   }else{
     lHumStat = 3;
