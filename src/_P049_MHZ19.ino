@@ -14,6 +14,7 @@
 #define PLUGIN_NAME_049       "Gases - CO2 MH-Z19(b)"
 #define PLUGIN_VALUENAME1_049 "PPM"
 #define PLUGIN_VALUENAME2_049 "Temperature" // Temperature in C
+#define PLUGIN_VALUENAME3_049 "U" // Undocumented, minimum measurement per time period?
 #define PLUGIN_READ_TIMEOUT   3000
 
 boolean Plugin_049_init = false;
@@ -58,7 +59,7 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
         Device[deviceCount].PullUpOption = false;
         Device[deviceCount].InverseLogicOption = false;
         Device[deviceCount].FormulaOption = true;
-        Device[deviceCount].ValueCount = 2;
+        Device[deviceCount].ValueCount = 3;
         Device[deviceCount].SendDataOption = true;
         Device[deviceCount].TimerOption = true;
         Device[deviceCount].GlobalSyncOption = true;
@@ -75,6 +76,7 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
       {
         strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[0], PSTR(PLUGIN_VALUENAME1_049));
         strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[1], PSTR(PLUGIN_VALUENAME2_049));
+        strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[2], PSTR(PLUGIN_VALUENAME3_049));
         break;
       }
 
@@ -281,6 +283,11 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               unsigned int mhzRespTemp = (unsigned int) mhzResp[4];
               temp = mhzRespTemp - 40;
 
+              // calculate 'u' value
+              unsigned int mhzRespUHigh = (unsigned int) mhzResp[6];
+              unsigned int mhzRespULow = (unsigned int) mhzResp[7];
+              u = (256*mhzRespUHigh) + mhzRespULow;
+
               String log = F("MHZ19: ");
               log += "counter:";
               log += String(counter);
@@ -291,6 +298,7 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
 
                 UserVar[event->BaseVarIndex] = (float)ppm;
                 UserVar[event->BaseVarIndex + 1] = (float)temp;
+                UserVar[event->BaseVarIndex + 2] = (float)u;
               if (Plugin_049_ABC_MustApply) {
                 // Send ABC enable/disable command based on the desired state.
                 if (Plugin_049_ABC_Disable) {
@@ -308,6 +316,8 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               log += ppm;
               log += F(" Temp: ");
               log += temp;
+              log += F("/");
+              log += u;
               addLog(LOG_LEVEL_INFO, log);
               break;
           // Sensor responds with 0x99 whenever we send it a measurement range adjustment
