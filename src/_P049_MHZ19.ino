@@ -14,7 +14,7 @@
 #define PLUGIN_NAME_049       "Gases - CO2 MH-Z19(b)"
 #define PLUGIN_VALUENAME1_049 "PPM"
 #define PLUGIN_VALUENAME2_049 "Temperature" // Temperature in C
-#define PLUGIN_VALUENAME3_049 "U" // Undocumented, minimum measurement per time period?
+#define PLUGIN_VALUENAME3_049 "U"   // Undocumented, minimum measurement per time period?
 #define PLUGIN_READ_TIMEOUT   3000
 
 boolean Plugin_049_init = false;
@@ -199,28 +199,36 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               log += nbBytesSent;
               addLog(LOG_LEVEL_INFO, log);
           }
-
-          // get response
+          success = false;
+        }
+      }
+    case PLUGIN_ONCE_A_SECOND:
+      {
+        // Check if response is available
+        if (Plugin_049_SoftSerial->available() == 0) {
+          success = false;
+        } else {
+          // get response from MH-Z19
           memset(mhzResp, 0, sizeof(mhzResp));
-
           long start = millis();
           int counter = 0;
           int skipped = 0;
-          String log = F("MHZ19: skipped bytes before 255/134: ");
+          String log = F("MHZ19: skipped unknown response: ");
+          mhzResp[counter] = Plugin_049_SoftSerial->read();
+          int i;
+          counter++;
           while (((millis() - start) < PLUGIN_READ_TIMEOUT) && (counter < 9)) {
             if (Plugin_049_SoftSerial->available() > 0) {
               mhzResp[counter] = Plugin_049_SoftSerial->read();
-              if ( counter == 0 && mhzResp[0] == 0xFF ) {
+              // check for valid second byte responses after FF
+              if ( mhzResp[0] == 0xFF &&
+                    ( mhzResp[1] == 0x79 || mhzResp[1] == 0x86 || mhzResp[1] == 0x87 || mhzResp[1] == 0x8d || mhzResp[1] == 0x99) ) {
                 counter++;
-              }
-              else if (counter > 0) {
-                if ( mhzResp[0] == 0xFF && mhzResp[1] == 0x86) {
-                  counter++;
-                } else {
-                  log += String(mhzResp[0]); log += "/";
-                  mhzResp[0] = mhzResp[1];
-                  skipped++;
-                }
+              } else {
+                // just ignore this byte and shift
+                log += String(mhzResp[0]); log += "/";
+                mhzResp[0] = mhzResp[1];
+                skipped++;
               }
             } else {
               delay(10);
@@ -230,11 +238,12 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
             addLog(LOG_LEVEL_INFO, log);
           }
           if (counter < 9){
-              addLog(LOG_LEVEL_INFO, F("MHZ19: Error, timeout while trying to read"));
+            String log = F("MHZ19: Error, timeout while trying to read. Received:");
+            log += " bytes read  => ";for (i = 0; i < counter; i++) {log += mhzResp[i];log += "/" ;}
+            addLog(LOG_LEVEL_INFO, log);
           }
 
           unsigned int ppm = 0;
-          int i;
           signed int temp = 0;
           unsigned int s = 0;
           float u = 0;
@@ -243,35 +252,25 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               crc = 255 - crc;
               crc++;
 
+          log = F("MHZ19: ");
+          //--- Only needed when debugging to show all received information details
+          //log += "counter:";
+          //log += String(counter);
+          //log += " crc:";
+          //log += String(crc); log += "/"; log += String(mhzResp[8]);
+          //log += " bytes read  => ";for (i = 0; i < 9; i++) {log += mhzResp[i];log += "/" ;}
+          //log += " > ";
+          //---
           if ( !(mhzResp[8] == crc) ) {
-             String log = F("MHZ19: Read error : CRC = ");
+             log += F("Read error : CRC = ");
              log += String(crc); log += " / "; log += String(mhzResp[8]);
              log += " bytes read  => ";for (i = 0; i < 9; i++) {log += mhzResp[i];log += "/" ;}
-             addLog(LOG_LEVEL_ERROR, log);
-
-             // Sometimes there is a misalignment in the serial read
-             // and the starting byte 0xFF isn't the first read byte.
-             // This goes on forever.
-             // There must be a better way to handle this, but here
-             // we're trying to shift it so that 0xFF is the next byte
-             byte crcshift;
-             for (i = 1; i < 8; i++) {
-                crcshift = Plugin_049_SoftSerial->peek();
-                if (crcshift == 0xFF) {
-                  String log = F("MHZ19: Shifted ");
-                  log += i;
-                  log += F(" bytes to attempt to fix buffer alignment");
-                  addLog(LOG_LEVEL_ERROR, log);
-                  break;
-                } else {
-                 crcshift = Plugin_049_SoftSerial->read();
-                }
-             }
              success = false;
+             addLog(LOG_LEVEL_ERROR, log);
              break;
 
-          // Process responses to 0x86
-          } else if (mhzResp[0] == 0xFF && mhzResp[1] == 0x86 && mhzResp[8] == crc)  {
+          // Process responses to ReadPPM
+          } else if (mhzResp[1] == 0x86)  {
               //  counter:9 crc:174/174 bytes read  => 255/134/1/138/65/0/0/0/174/
               //     > PPM value: 394 Temp/S/U values: 25/0/0.00
               //calculate CO2 PPM
@@ -288,17 +287,9 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               unsigned int mhzRespULow = (unsigned int) mhzResp[7];
               u = (256*mhzRespUHigh) + mhzRespULow;
 
-              String log = F("MHZ19: ");
-              log += "counter:";
-              log += String(counter);
-              log += " crc:";
-              log += String(crc); log += "/"; log += String(mhzResp[8]);
-              log += " bytes read  => ";for (i = 0; i < 9; i++) {log += mhzResp[i];log += "/" ;}
-              log += " > ";
-
-                UserVar[event->BaseVarIndex] = (float)ppm;
-                UserVar[event->BaseVarIndex + 1] = (float)temp;
-                UserVar[event->BaseVarIndex + 2] = (float)u;
+              UserVar[event->BaseVarIndex] = (float)ppm;
+              UserVar[event->BaseVarIndex + 1] = (float)temp;
+              UserVar[event->BaseVarIndex + 2] = (float)u;
               if (Plugin_049_ABC_MustApply) {
                 // Send ABC enable/disable command based on the desired state.
                 if (Plugin_049_ABC_Disable) {
@@ -314,26 +305,38 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               // Log values in all cases
               log += F("PPM value: ");
               log += ppm;
-              log += F(" Temp: ");
+              log += F(" Temp/U: ");
               log += temp;
               log += F("/");
               log += u;
               addLog(LOG_LEVEL_INFO, log);
+              sendData(event);  // send update
               break;
-          // Sensor responds with 0x99 whenever we send it a measurement range adjustment
-          } else if (mhzResp[0] == 0xFF && mhzResp[1] == 0x99 && mhzResp[8] == crc)  {
 
-            addLog(LOG_LEVEL_INFO, F("MHZ19: Received measurement range acknowledgment! "));
-            addLog(LOG_LEVEL_INFO, F("Expecting sensor reset..."));
-            success = false;
-            break;
+          } else if (mhzResp[1] == 0x87)  {
+              addLog(LOG_LEVEL_INFO, F("Received CalibrateZero acknowledgment!"));
+              success = false;
+              break;
+
+          } else if (mhzResp[1] == 0x79)  {
+              addLog(LOG_LEVEL_INFO, F("Received ABC Enable/Disable acknowledgment!"));
+              success = false;
+              break;
+
+          } else if (mhzResp[1] == 0x87)  {
+              addLog(LOG_LEVEL_INFO, F("MHZ19: Received Reset acknowledgment!"));
+              success = false;
+              break;
+
+          } else if (mhzResp[1] == 0x99)  {
+              addLog(LOG_LEVEL_INFO, F("Received MeasurementRange acknowledgment!"));
+              success = false;
+              break;
+
           // log verbosely anything else that the sensor reports
           } else {
-              String log = F("MHZ19: Unknown response: ");
-              for (int i = 0; i < 9; ++i) {
-              log += F(" ");
-                log += String(mhzResp[i], HEX);
-              }
+              log += F("Unknown response:");
+              log += " bytes read  => ";for (i = 0; i < 9; i++) {log += mhzResp[i];log += "/" ;}
               addLog(LOG_LEVEL_INFO, log);
               success = false;
               break;
@@ -341,6 +344,6 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
         }
         break;
       }
+    }
+    return success;
   }
-  return success;
-}
