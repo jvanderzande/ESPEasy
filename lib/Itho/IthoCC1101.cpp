@@ -423,7 +423,7 @@ bool IthoCC1101::checkForNewPacket()
 				parseMessageCommand();
 
 				//bug detection
-				testCreateMessage();
+				//testCreateMessage();
 
 				//switch back to message1 RF settings
 				initReceiveMessage1();
@@ -453,7 +453,7 @@ bool IthoCC1101::checkForNewPacket()
 				parseMessageJoin();
 
 				//bug detection
-				testCreateMessage();
+				//testCreateMessage();
 
 				//switch back to message1 RF settings
 				initReceiveMessage1();
@@ -483,7 +483,7 @@ bool IthoCC1101::checkForNewPacket()
 				parseMessageLeave();
 
 				//bug detection
-				testCreateMessage();
+				//testCreateMessage();
 
 				//switch back to message1 RF settings
 				initReceiveMessage1();

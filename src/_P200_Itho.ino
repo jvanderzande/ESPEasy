@@ -31,6 +31,16 @@
 //D6 gaat naar MISO
 //D5 gaat naar SCK
 //
+//Connections between the CC1101 and the ESP8266 or Arduino:
+//CC11xx pins   Wemos pins  ESP pins  Arduino pins  Description
+//*  1 - VCC        3v3     VCC       VCC           3v3
+//*  2 - GND        GND     GND       GND           Ground
+//*  3 - MOSI       D7      13=D7     Pin 11        Data input to CC11xx
+//*  4 - SCK        D5      14=D5     Pin 13        Clock pin
+//*  5 - MISO/GDO1  D6      12=D6     Pin 12        Data output from CC11xx / serial clock from CC11xx
+//*  6 - GDO2               ?         Pin  ?        Programmable output
+//*  7 - GDO0               ?         Pin  ?        Programmable output
+//*  8 - CSN        D8      15=D8     Pin 10        Chip select / (SPI_SS)
 
 //This code needs the library made by 'supersjimmie': https://github.com/supersjimmie/IthoEcoFanRFT/tree/master/Master/Itho
 // A CC1101 868Mhz transmitter is needed
@@ -85,130 +95,157 @@ boolean Plugin_200(byte function, struct EventStruct *event, String& string)
 
 		case PLUGIN_INIT:
 		{
+			pinMode(15, OUTPUT);
+			// initialize SPI:
+			SPI.setHwCs(false);
+			SPI.begin();
+
 			rf.init();
 			//rf.sendCommand(IthoJoin);
 			addLog(LOG_LEVEL_INFO, F("CC1101 868Mhz transmitter initialized"));
 			success = true;
+			rf.initReceive();
 			Plugin_200_init = true;
 			break;
 		}
 
-		case PLUGIN_TEN_PER_SECOND:
-      {
-        // check for commands send by other remote
-				if (Plugin_200_init) {
-					if (rf.checkForNewPacket()) {
-						String cmd = F("?");
-						String log = F("Itho received:  ");
-						packet = rf.getLastPacket();
-						//show counter
-						log += F("counter=");
-						log += packet.counter;
-						log += F("/");
-						//show command
-						switch (packet.command) {
-			        case IthoLow:
-								cmd = F("low\n");
-								UserVar[event->BaseVarIndex] = 1;
-								break;
-			        case IthoMedium:
-			        	cmd = F("medium\n");
-								UserVar[event->BaseVarIndex] = 2;
-			        	break;
-			        case IthoFull:
-			        	cmd = F("full\n");
-								UserVar[event->BaseVarIndex] = 3;
-			        	break;
-			        case IthoTimer1:
-			        	cmd = F("timer1\n");
-								UserVar[event->BaseVarIndex] = 4;
-		          	break;
-			        case IthoTimer2:
-			        	cmd = F("timer2\n");
-								UserVar[event->BaseVarIndex] = 5;
-			        	break;
-			        case IthoTimer3:
-			        	cmd = F("timer3\n");
-								UserVar[event->BaseVarIndex] = 6;
-			        	break;
-			        case IthoJoin:
-			        	cmd = F("join\n");
-								UserVar[event->BaseVarIndex] = 7;
-			        	break;
-			        case IthoLeave:
-			        	cmd = F("leave\n");
-								UserVar[event->BaseVarIndex] = 8;
-			       		break;
-							case IthoUnknown:
-			        	cmd = F("unknown\n");
-								UserVar[event->BaseVarIndex] = 9;
-								break;
-							}
-							// send if output needs to be changed
-							event->sensorType = SENSOR_TYPE_DIMMER;
-							log += cmd;
-							log += "/";
-							log += UserVar[event->BaseVarIndex];
-							addLog(LOG_LEVEL_INFO, log);
-							sendData(event);
-						}  // switch (recv) command
-					}  // checkfornewpacket
-					success = true;
-					break;
-        }
+		case PLUGIN_ONCE_A_SECOND:
+		{
+			// check for commands send by other remote
+			if (Plugin_200_init)
+			{
+				//addLog(LOG_LEVEL_INFO, F("@"));
+				if (rf.checkForNewPacket())
+				{
+					addLog(LOG_LEVEL_INFO, F("@"));
+					String cmd = F("?");
+					String log = F("Itho received:  ");
+					packet = rf.getLastPacket();
+					//show counter
+					log += F("counter=");
+					log += packet.counter;
+					log += F("/");
+					//show command
+					switch (packet.command)
+					{
+					case IthoLow:
+						cmd = F("low\n");
+						UserVar[event->BaseVarIndex] = 1;
+					case IthoMedium:
+						cmd = F("medium\n");
+						UserVar[event->BaseVarIndex] = 2;
+					case IthoFull:
+						cmd = F("full\n");
+						UserVar[event->BaseVarIndex] = 3;
+					case IthoTimer1:
+						cmd = F("timer1\n");
+						UserVar[event->BaseVarIndex] = 4;
+					case IthoTimer2:
+						cmd = F("timer2\n");
+						UserVar[event->BaseVarIndex] = 5;
+					case IthoTimer3:
+						cmd = F("timer3\n");
+						UserVar[event->BaseVarIndex] = 6;
+					case IthoJoin:
+						cmd = F("join\n");
+						UserVar[event->BaseVarIndex] = 7;
+					case IthoLeave:
+						cmd = F("leave\n");
+						UserVar[event->BaseVarIndex] = 8;
+					case IthoUnknown:
+						cmd = F("unknown\n");
+						UserVar[event->BaseVarIndex] = 9;
+					}
+					// send if output needs to be changed
+					event->sensorType = SENSOR_TYPE_DIMMER;
+					log += cmd;
+					log += "/";
+					log += UserVar[event->BaseVarIndex];
+					addLog(LOG_LEVEL_INFO, log);
+					sendData(event);
+				} // switch (recv) command
+			}	 // checkfornewpacket
+			success = true;
+			break;
+		}
 
 		case PLUGIN_WRITE: {
 			String tmpString = string;
 			String cmd = parseString(tmpString, 1);
 			String param1 = parseString(tmpString, 2);
 			if (cmd.equalsIgnoreCase(F("ITHOSEND"))) {
+				event->sensorType = SENSOR_TYPE_DIMMER;
 				if (param1.equalsIgnoreCase(F("join"))) {
-					//rf.sendCommand(IthoJoin);
+					rf.sendCommand(IthoJoin);
 					addLog(LOG_LEVEL_INFO, F("Sent command for 'join' to Itho unit"));
 					printWebString += F("Sent command for 'join' to Itho unit");
 					success = true;
+					UserVar[event->BaseVarIndex] = 7;
+					sendData(event);  // send update
+					break;
 				}
 				else if (param1.equalsIgnoreCase(F("leave"))) {
-					//rf.sendCommand(IthoLeave);
+					rf.sendCommand(IthoLeave);
 					addLog(LOG_LEVEL_INFO, F("Sent command for 'leave' to Itho unit"));
 					printWebString += F("Sent command for 'leave' to Itho unit");
 					success = true;
+					UserVar[event->BaseVarIndex] = 8;
+					sendData(event);  // send update
+					break;
 				}
 				else if (param1.equalsIgnoreCase(F("low"))) {
-					//rf.sendCommand(IthoLow);
+					rf.sendCommand(IthoLow);
 					addLog(LOG_LEVEL_INFO, F("Sent command for 'low speed' to Itho unit"));
 					printWebString += F("Sent command for 'low speed' to Itho unit");
 					success = true;
+					UserVar[event->BaseVarIndex] = 1;
+					sendData(event);  // send update
+					break;
 				}
 				else if (param1.equalsIgnoreCase(F("medium")))	{
-					//rf.sendCommand(IthoMedium);
+					rf.sendCommand(IthoMedium);
 					addLog(LOG_LEVEL_INFO, F("Sent command for 'medium speed' to Itho unit"));
 					printWebString += F("Sent command for 'medium speed' to Itho unit");
 					success = true;
+					UserVar[event->BaseVarIndex] = 2;
+					sendData(event);  // send update
+					break;
 				}
 				else if (param1.equalsIgnoreCase(F("high"))) {
-					//rf.sendCommand(IthoFull);
+					rf.sendCommand(IthoFull);
 					addLog(LOG_LEVEL_INFO, F("Sent command for 'full speed' to Itho unit"));
 					printWebString += F("Sent command for 'full speed' to Itho unit");
 					success = true;
+					UserVar[event->BaseVarIndex] = 3;
+					sendData(event);  // send update
+					break;
 				}
 				else if (param1.equalsIgnoreCase(F("timer1")))	{
-					//rf.sendCommand(IthoTimer1);
+					rf.sendCommand(IthoTimer1);
 					addLog(LOG_LEVEL_INFO, F("Sent command for 'timer 1' to Itho unit"));
 					printWebString += F("Sent command for 'timer 1' to Itho unit");
 					success = true;
+					UserVar[event->BaseVarIndex] = 4;
+					sendData(event);  // send update
+					break;
 				}
 				else if (param1.equalsIgnoreCase(F("timer2"))) {
-					//rf.sendCommand(IthoTimer2);
+					rf.sendCommand(IthoTimer2);
 					addLog(LOG_LEVEL_INFO, F("Sent command for 'timer 2' to Itho unit"));
 					printWebString += F("Sent command for 'timer 2' to Itho unit");
 					success = true;
+					UserVar[event->BaseVarIndex] = 5;
+					sendData(event);  // send update
+					break;
 				}
 				else if (param1.equalsIgnoreCase(F("timer3")))	{
-					//rf.sendCommand(IthoTimer3);
+					rf.sendCommand(IthoTimer3);
 					addLog(LOG_LEVEL_INFO, F("Sent command for 'timer 3' to Itho unit"));
 					printWebString += F("Sent command for 'timer 3' to Itho unit");
 					success = true;
+					UserVar[event->BaseVarIndex] = 6;
+					sendData(event);  // send update
+					break;
 				}
 			}
 		}
