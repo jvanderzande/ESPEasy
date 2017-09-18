@@ -106,11 +106,11 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
 
     case PLUGIN_INIT:
       {
+        Plugin_049_ABC_Disable = Settings.TaskDevicePluginConfig[event->TaskIndex][0] == ABC_disabled;
         if (Plugin_049_ABC_Disable) {
           // No guarantee the correct state is active on the sensor after reboot.
           Plugin_049_ABC_MustApply = true;
         }
-        Plugin_049_ABC_Disable = Settings.TaskDevicePluginConfig[event->TaskIndex][0] == ABC_disabled;
         Plugin_049_SoftSerial = new SoftwareSerial(Settings.TaskDevicePin1[event->TaskIndex], Settings.TaskDevicePin2[event->TaskIndex]);
         Plugin_049_SoftSerial->begin(9600);
         addLog(LOG_LEVEL_INFO, F("MHZ19: Init OK "));
@@ -282,6 +282,10 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               unsigned int mhzRespTemp = (unsigned int) mhzResp[4];
               temp = mhzRespTemp - 40;
 
+              // set 's' (stability) value
+              unsigned int mhzRespS = (unsigned int) mhzResp[5];
+              s = mhzRespS;
+
               // calculate 'u' value
               unsigned int mhzRespUHigh = (unsigned int) mhzResp[6];
               unsigned int mhzRespULow = (unsigned int) mhzResp[7];
@@ -301,7 +305,6 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
                 }
                   Plugin_049_ABC_MustApply = false;
               }
-              success = true;
               // Log values in all cases
               log += F("PPM value: ");
               log += ppm;
@@ -309,8 +312,16 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               log += temp;
               log += F("/");
               log += u;
+      			  if (s == 0 || s == 64) {
+                success = true;
+                sendData(event);  // send update
+              } else {
+                log += F(" Unstable reading, ignoring!");
+                log += F(" s=");
+                log += s;
+                success = false;
+      			  }
               addLog(LOG_LEVEL_INFO, log);
-              sendData(event);  // send update
               break;
 
           } else if (mhzResp[1] == 0x87)  {
