@@ -237,6 +237,17 @@ boolean CPlugin_002(byte function, struct EventStruct *event, String& string)
               // values.toCharArray(str, 80);
               // root["svalue"] =  str;
               break;
+            case SENSOR_TYPE_AIRQUALITY:                       //
+              root[F("nvalue")] = 0;
+              values  = toString(UserVar[event->BaseVarIndex ], ExtraTaskSettings.TaskDeviceValueDecimals[0]);
+              values += ";";
+              values += toString(UserVar[event->BaseVarIndex + 1], ExtraTaskSettings.TaskDeviceValueDecimals[1]);
+              values += ";";
+              values += toString(UserVar[event->BaseVarIndex + 2], ExtraTaskSettings.TaskDeviceValueDecimals[2]);
+              // values.toCharArray(str, 80);
+              root[F("svalue")] =  values.c_str();
+              // root[F("svalue")] =  str;
+              break;
           }
 
           String json;
