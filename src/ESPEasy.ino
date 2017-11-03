@@ -1,3 +1,9 @@
+#ifdef CONTINUOUS_INTEGRATION
+#pragma GCC diagnostic error "-Wall"
+#else
+#pragma GCC diagnostic warning "-Wall"
+#endif
+
 /****************************************************************************************************************************\
  * Arduino project "ESP Easy" © Copyright www.letscontrolit.com
  *
@@ -130,8 +136,8 @@
 //If you dont select any, a version with a minimal number of plugins will be biult for 512k versions.
 //(512k is NOT finsihed or tested yet as of v2.0.0-dev6)
 
-//build all the normal stable plugins
-//#define PLUGIN_BUILD_NORMAL
+//build all the normal stable plugins (on by default)
+#define PLUGIN_BUILD_NORMAL
 
 //build all plugins that are in test stadium
 //#define PLUGIN_BUILD_TESTING
@@ -158,7 +164,6 @@
 #define NODE_TYPE_ID_ESP_EASY32_STD        33
 #define NODE_TYPE_ID_ARDUINO_EASY_STD      65
 #define NODE_TYPE_ID_NANO_EASY_STD         81
-#define NODE_TYPE_ID                        NODE_TYPE_ID_ESP_EASYM_STD
 
 #define PLUGIN_INIT_ALL                     1
 #define PLUGIN_INIT                         2
@@ -199,6 +204,8 @@
 #define NPLUGIN_WEBFORM_LOAD                4
 #define NPLUGIN_WRITE                       5
 #define NPLUGIN_NOTIFY                      6
+#define NPLUGIN_NOT_FOUND                 255
+
 
 #define LOG_LEVEL_ERROR                     1
 #define LOG_LEVEL_INFO                      2
@@ -284,43 +291,71 @@
 #define DAT_OFFSET_CONTROLLER           28672  // each controller = 1k, 4 max
 #define DAT_OFFSET_CUSTOM_CONTROLLER    32768  // each custom controller config = 1k, 4 max.
 
-#include "lwip/tcp_impl.h"
-#include <ESP8266WiFi.h>
-#include <DNSServer.h>
+
+#define FS_NO_GLOBALS
+#if defined(ESP8266)
+  #define NODE_TYPE_ID                        NODE_TYPE_ID_ESP_EASYM_STD
+  #define FILE_CONFIG       "config.dat"
+  #define FILE_SECURITY     "security.dat"
+  #define FILE_NOTIFICATION "notification.dat"
+  #define FILE_RULES        "rules1.dat"
+  #include "lwip/tcp_impl.h"
+  #include <ESP8266WiFi.h>
+  #include <ESP8266WebServer.h>
+  ESP8266WebServer WebServer(80);
+  #include <DNSServer.h>
+  #include <Servo.h>
+  #include <ESP8266HTTPUpdateServer.h>
+  ESP8266HTTPUpdateServer httpUpdater(true);
+  #ifndef LWIP_OPEN_SRC
+  #define LWIP_OPEN_SRC
+  #endif
+  #include "lwip/opt.h"
+  #include "lwip/udp.h"
+  #include "lwip/igmp.h"
+  #include "include/UdpContext.h"
+  #include "limits.h"
+  extern "C" {
+   #include "user_interface.h"
+  }
+  extern "C" {
+  #include "spi_flash.h"
+  }
+  extern "C" uint32_t _SPIFFS_start;
+  extern "C" uint32_t _SPIFFS_end;
+  extern "C" uint32_t _SPIFFS_page;
+  extern "C" uint32_t _SPIFFS_block;
+  #define PIN_D_MAX        16
+#endif
+#if defined(ESP32)
+  #define NODE_TYPE_ID                        NODE_TYPE_ID_ESP_EASY32_STD
+  #define ICACHE_RAM_ATTR IRAM_ATTR
+  #define FILE_CONFIG       "/config.dat"
+  #define FILE_SECURITY     "/security.dat"
+  #define FILE_NOTIFICATION "/notification.dat"
+  #define FILE_RULES        "/rules1.dat"
+  #include <WiFi.h>
+  #include <ESP32WebServer.h>
+  #include "SPIFFS.h"
+  ESP32WebServer WebServer(80); 
+  #define PIN_D_MAX        39
+  int8_t ledChannelPin[16];
+#endif
+
 #include <WiFiUdp.h>
-#include <ESP8266WebServer.h>
 #ifdef FEATURE_MDNS
 #include <ESP8266mDNS.h>
 #endif
-
+#include <DNSServer.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <PubSubClient.h>
-// #include <ArduinoJson.h>
-// #include <LiquidCrystal_I2C.h>
-#include <Servo.h>
-#define FS_NO_GLOBALS
 #include <FS.h>
 #include <SD.h>
-#include <ESP8266HTTPUpdateServer.h>
-ESP8266HTTPUpdateServer httpUpdater(true);
 #include <base64.h>
 #if FEATURE_ADC_VCC
 ADC_MODE(ADC_VCC);
 #endif
-#ifndef LWIP_OPEN_SRC
-#define LWIP_OPEN_SRC
-#endif
-#include "lwip/opt.h"
-#include "lwip/udp.h"
-#include "lwip/igmp.h"
-#include "include/UdpContext.h"
-#include "limits.h"
-
-extern "C" {
-#include "user_interface.h"
-}
-
 
 #ifdef FEATURE_ARDUINO_OTA
 #include <ArduinoOTA.h>
@@ -341,21 +376,8 @@ MDNSResponder mdns;
 WiFiClient mqtt;
 PubSubClient MQTTclient(mqtt);
 
-// WebServer
-ESP8266WebServer WebServer(80);
-
 // udp protocol stuff (syslog, global sync, node info list, ntp time)
 WiFiUDP portUDP;
-
-
-
-extern "C" {
-#include "spi_flash.h"
-}
-extern "C" uint32_t _SPIFFS_start;
-extern "C" uint32_t _SPIFFS_end;
-extern "C" uint32_t _SPIFFS_page;
-extern "C" uint32_t _SPIFFS_block;
 
 struct SecurityStruct
 {
@@ -412,7 +434,7 @@ struct SettingsStruct
   boolean       MQTTRetainFlag;
   boolean       InitSPI;
   byte          Protocol[CONTROLLER_MAX];
-  byte          Notification[NOTIFICATION_MAX];
+  byte          Notification[NOTIFICATION_MAX]; //notifications, point to a NPLUGIN id
   byte          TaskDeviceNumber[TASKS_MAX];
   unsigned int  OLD_TaskDeviceID[TASKS_MAX];
   union {
@@ -488,7 +510,8 @@ struct EventStruct
   byte ControllerIndex; // index position in Settings.Controller, 0-3
   byte ProtocolIndex; // index position in protocol array, depending on which controller plugins are loaded.
   byte NotificationIndex; // index position in Settings.Notification, 0-3
-  byte NotificationProtocolIndex; // index position in notification array, depending on which controller plugins are loaded.
+  //Edwin: Not needed, and wasnt used. We can determine the protocol index with getNotificationProtocolIndex(NotificationIndex)
+  // byte NotificationProtocolIndex; // index position in notification array, depending on which controller plugins are loaded.
   byte BaseVarIndex;
   int idx;
   byte sensorType;
@@ -616,6 +639,7 @@ unsigned long timer20ms;
 unsigned long timer1s;
 unsigned long timerwd;
 unsigned long lastSend;
+unsigned long lastWeb;
 unsigned int NC_Count = 0;
 unsigned int C_Count = 0;
 byte cmd_within_mainloop = 0;
@@ -656,7 +680,7 @@ unsigned long dailyResetCounter = 0;
 
 String eventBuffer = "";
 
-uint16_t lowestRAM = 0;
+uint32_t lowestRAM = 0;
 String lowestRAMfunction = "";
 
 /*********************************************************************************************\
@@ -664,6 +688,10 @@ String lowestRAMfunction = "";
 \*********************************************************************************************/
 void setup()
 {
+  #if defined(ESP32)
+    for(byte x = 0; x < 16; x++)
+      ledChannelPin[x] = -1;
+  #endif
 
   lowestRAM = FreeMem();
 
@@ -720,12 +748,9 @@ void setup()
 
   addLog(LOG_LEVEL_INFO, log);
 
-
-
-
   fileSystemCheck();
   LoadSettings();
-
+        
   if (strcasecmp(SecuritySettings.WifiSSID, "ssid") == 0)
     wifiSetup = true;
 
@@ -953,7 +978,12 @@ void runOncePerSecond()
         }
       case CMD_REBOOT:
         {
-          ESP.reset();
+          #if defined(ESP8266)
+            ESP.reset();
+          #endif
+          #if defined(ESP32)
+            ESP.restart();
+          #endif
           break;
         }
     }
@@ -1022,8 +1052,10 @@ void runEach30Seconds()
   refreshNodeList();
   if(Settings.ControllerEnabled[0])
     MQTTCheck();
+  #if defined(ESP8266)
   if (Settings.UseSSDP)
     SSDP_update();
+  #endif
 #if FEATURE_ADC_VCC
   vcc = ESP.getVcc() / 1000.0;
 #endif
@@ -1132,7 +1164,7 @@ void SensorSendTask(byte TaskIndex)
 /*********************************************************************************************\
  * set global system timer
 \*********************************************************************************************/
-boolean setSystemTimer(unsigned long timer, byte plugin, byte Par1, byte Par2, byte Par3)
+void setSystemTimer(unsigned long timer, byte plugin, byte Par1, byte Par2, byte Par3)
 {
   // plugin number and par1 form a unique key that can be used to restart a timer
   // first check if a timer is not already running for this request
@@ -1165,10 +1197,11 @@ boolean setSystemTimer(unsigned long timer, byte plugin, byte Par1, byte Par2, b
 }
 
 
+//EDWIN: this function seems to be unused?
 /*********************************************************************************************\
  * set global system command timer
 \*********************************************************************************************/
-boolean setSystemCMDTimer(unsigned long timer, String& action)
+void setSystemCMDTimer(unsigned long timer, String& action)
 {
   for (byte x = 0; x < SYSTEM_CMD_TIMER_MAX; x++)
     if (systemCMDTimers[x].timer == 0)
@@ -1183,7 +1216,7 @@ boolean setSystemCMDTimer(unsigned long timer, String& action)
 /*********************************************************************************************\
  * check global system timers
 \*********************************************************************************************/
-boolean checkSystemTimers()
+void checkSystemTimers()
 {
   for (byte x = 0; x < SYSTEM_TIMER_MAX; x++)
     if (systemTimers[x].timer != 0)
@@ -1229,7 +1262,9 @@ void backgroundtasks()
   }
   runningBackgroundTasks=true;
 
-  tcpCleanup();
+  #if defined(ESP8266)
+    tcpCleanup();
+  #endif
 
   if (Settings.UseSerial)
     if (Serial.available())
