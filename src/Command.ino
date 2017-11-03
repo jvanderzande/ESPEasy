@@ -100,11 +100,14 @@ void ExecuteCommand(byte source, const char *Line)
     {
       if (Settings.NotificationEnabled[Par1 - 1] && Settings.Notification[Par1 - 1] != 0)
       {
-        byte NotificationProtocolIndex = getNotificationIndex(Settings.Notification[Par1 - 1]);
-        struct EventStruct TempEvent;
-        TempEvent.NotificationProtocolIndex = Par1 - 1;
-        if (NPlugin_id[NotificationProtocolIndex] != 0)
+        byte NotificationProtocolIndex = getNotificationProtocolIndex(Settings.Notification[Par1 - 1]);
+        if (NotificationProtocolIndex!=NPLUGIN_NOT_FOUND)
+        {
+          struct EventStruct TempEvent;
+          // TempEvent.NotificationProtocolIndex = NotificationProtocolIndex;
+          TempEvent.NotificationIndex=Par1-1;
           NPlugin_ptr[NotificationProtocolIndex](NPLUGIN_NOTIFY, &TempEvent, message);
+        }
       }
     }
   }
@@ -373,7 +376,9 @@ void ExecuteCommand(byte source, const char *Line)
     str2ip((char*)ip.c_str(), ipaddress);
     IPAddress UDP_IP(ipaddress[0], ipaddress[1], ipaddress[2], ipaddress[3]);
     portUDP.beginPacket(UDP_IP, port.toInt());
-    portUDP.write(message.c_str(), message.length());
+    #if defined(ESP8266)
+      portUDP.write(message.c_str(), message.length());
+    #endif
     portUDP.endPacket();
   }
 
@@ -488,7 +493,12 @@ void ExecuteCommand(byte source, const char *Line)
     pinMode(0, INPUT);
     pinMode(2, INPUT);
     pinMode(15, INPUT);
-    ESP.reset();
+    #if defined(ESP8266)
+      ESP.reset();
+    #endif
+    #if defined(ESP32)
+      ESP.restart();
+    #endif
   }
 
   if (strcasecmp_P(Command, PSTR("Restart")) == 0)
