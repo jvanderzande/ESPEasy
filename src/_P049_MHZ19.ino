@@ -199,7 +199,7 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               log += nbBytesSent;
               addLog(LOG_LEVEL_INFO, log);
           }
-          success = false;
+          success = true;
         }
       }
     case PLUGIN_ONCE_A_SECOND:
@@ -325,12 +325,12 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               break;
 
           } else if (mhzResp[1] == 0x87)  {
-              addLog(LOG_LEVEL_INFO, F("Received CalibrateZero acknowledgment!"));
+              addLog(LOG_LEVEL_INFO, F("MHZ19: Received CalibrateZero acknowledgment!"));
               success = false;
               break;
 
           } else if (mhzResp[1] == 0x79)  {
-              addLog(LOG_LEVEL_INFO, F("Received ABC Enable/Disable acknowledgment!"));
+              addLog(LOG_LEVEL_INFO, F("MHZ19: Received ABC Enable/Disable acknowledgment!"));
               success = false;
               break;
 
@@ -340,7 +340,7 @@ boolean Plugin_049(byte function, struct EventStruct *event, String& string)
               break;
 
           } else if (mhzResp[1] == 0x99)  {
-              addLog(LOG_LEVEL_INFO, F("Received MeasurementRange acknowledgment!"));
+              addLog(LOG_LEVEL_INFO, F("MHZ19: Received MeasurementRange acknowledgment!"));
               success = false;
               break;
 
