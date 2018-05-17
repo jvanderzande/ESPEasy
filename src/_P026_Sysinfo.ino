@@ -1,10 +1,11 @@
+#ifdef USES_P026
 //#######################################################################################################
 //#################################### Plugin 026: System Info ##########################################
 //#######################################################################################################
 
 #define PLUGIN_026
 #define PLUGIN_ID_026         26
-#define PLUGIN_NAME_026       "System Info"
+#define PLUGIN_NAME_026       "Generic - System Info"
 #define PLUGIN_VALUENAME1_026 ""
 
 boolean Plugin_026(byte function, struct EventStruct *event, String& string)
@@ -51,7 +52,7 @@ boolean Plugin_026(byte function, struct EventStruct *event, String& string)
         options[7] = F("IP 3.Octet");
         options[8] = F("IP 4.Octet");
         options[9] = F("Web activity");
-        addFormSelector(string, F("Indicator"), F("plugin_026"), 10, options, NULL, choice);
+        addFormSelector(F("Indicator"), F("plugin_026"), 10, options, NULL, choice);
 
         success = true;
         break;
@@ -134,3 +135,4 @@ boolean Plugin_026(byte function, struct EventStruct *event, String& string)
   }
   return success;
 }
+#endif // USES_P026

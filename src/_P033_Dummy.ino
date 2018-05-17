@@ -1,10 +1,11 @@
+#ifdef USES_P033
 //#######################################################################################################
 //#################################### Plugin 033: Dummy ################################################
 //#######################################################################################################
 
 #define PLUGIN_033
 #define PLUGIN_ID_033         33
-#define PLUGIN_NAME_033       "Dummy Device"
+#define PLUGIN_NAME_033       "Generic - Dummy Device"
 #define PLUGIN_VALUENAME1_033 "Dummy"
 boolean Plugin_033(byte function, struct EventStruct *event, String& string)
 {
@@ -69,8 +70,8 @@ boolean Plugin_033(byte function, struct EventStruct *event, String& string)
         optionValues[8] = SENSOR_TYPE_DIMMER;
         optionValues[9] = SENSOR_TYPE_LONG;
         optionValues[10] = SENSOR_TYPE_WIND;
-        
-        addFormSelector(string, F("Simulate Data Type"), F("plugin_033_sensortype"), 11, options, optionValues, choice );
+
+        addFormSelector(F("Simulate Data Type"), F("plugin_033_sensortype"), 11, options, optionValues, choice );
 
         success = true;
         break;
@@ -100,3 +101,4 @@ boolean Plugin_033(byte function, struct EventStruct *event, String& string)
   }
   return success;
 }
+#endif // USES_P033

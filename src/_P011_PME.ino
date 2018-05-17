@@ -1,10 +1,11 @@
+#ifdef USES_P011
 //#######################################################################################################
 //#################################### Plugin 011: Pro Mini Extender ####################################
 //#######################################################################################################
 
 #define PLUGIN_011
 #define PLUGIN_ID_011         11
-#define PLUGIN_NAME_011       "ProMini Extender"
+#define PLUGIN_NAME_011       "Extra IO - ProMini Extender"
 #define PLUGIN_VALUENAME1_011 "Value"
 
 #define PLUGIN_011_I2C_ADDRESS 0x7f
@@ -47,7 +48,7 @@ boolean Plugin_011(byte function, struct EventStruct *event, String& string)
       {
         byte choice = Settings.TaskDevicePluginConfig[event->TaskIndex][0];
         String options[2] = { F("Digital"), F("Analog") };
-        addFormSelector(string, F("Port Type"), F("plugin_011"), 2, options, NULL, choice);
+        addFormSelector(F("Port Type"), F("plugin_011"), 2, options, NULL, choice);
 
         success = true;
         break;
@@ -211,3 +212,4 @@ void Plugin_011_Write(byte Par1, byte Par2)
   Wire.write((Par2 >> 8));
   Wire.endTransmission();
 }
+#endif // USES_P011

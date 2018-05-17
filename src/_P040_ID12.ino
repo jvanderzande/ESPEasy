@@ -1,10 +1,11 @@
+#ifdef USES_P040
 //#######################################################################################################
 //#################################### Plugin 040: Serial RFID ID-12 ####################################
 //#######################################################################################################
 
 #define PLUGIN_040
 #define PLUGIN_ID_040         40
-#define PLUGIN_NAME_040       "RFID Reader - ID12LA/RDM6300"
+#define PLUGIN_NAME_040       "RFID - ID12LA/RDM6300"
 #define PLUGIN_VALUENAME1_040 "Tag"
 
 boolean Plugin_040_init = false;
@@ -133,3 +134,4 @@ boolean Plugin_040(byte function, struct EventStruct *event, String& string)
   }
   return success;
 }
+#endif // USES_P040

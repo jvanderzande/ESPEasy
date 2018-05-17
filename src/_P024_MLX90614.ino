@@ -1,3 +1,4 @@
+#ifdef USES_P024
 //#######################################################################################################
 //#################################### Plugin 024: MLX90614 IR temperature I2C 0x5A)  ###############################################
 //#######################################################################################################
@@ -6,7 +7,7 @@
 
 #define PLUGIN_024
 #define PLUGIN_ID_024 24
-#define PLUGIN_NAME_024 "Digital IR Thermometer - MLX90614"
+#define PLUGIN_NAME_024 "Environment - MLX90614"
 #define PLUGIN_VALUENAME1_024 "Temperature"
 
 boolean Plugin_024_init = false;
@@ -77,7 +78,7 @@ boolean Plugin_024(byte function, struct EventStruct *event, String& string)
         options[0] = F("IR object temperature");
         optionValues[1] = (0x06);
         options[1] = F("Ambient temperature");
-        addFormSelector(string, F("Option"), F("plugin_024_option"), MLX90614_OPTION, options, optionValues, choice);
+        addFormSelector(F("Option"), F("plugin_024_option"), MLX90614_OPTION, options, optionValues, choice);
 
         success = true;
         break;
@@ -122,3 +123,4 @@ boolean Plugin_024(byte function, struct EventStruct *event, String& string)
   }
   return success;
 }
+#endif // USES_P024
