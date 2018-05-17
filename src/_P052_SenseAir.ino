@@ -416,5 +416,9 @@ int getBitOfInt(int reg, int pos)
   int result = masked_register >> pos;
 
   return result;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> ea20971b5102335eca8617415d8e3cd29c929401
 #endif // USES_P052
