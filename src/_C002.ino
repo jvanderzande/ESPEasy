@@ -176,6 +176,20 @@ boolean CPlugin_002(byte function, struct EventStruct *event, String& string)
             case SENSOR_TYPE_TEMP_BARO:
             case SENSOR_TYPE_TEMP_HUM_BARO:
             case SENSOR_TYPE_WIND:
+            case SENSOR_TYPE_AIRQUALITY:
+              /*  needs fixing 
+              root[F("nvalue")] = 0;
+              values  = toString(UserVar[event->BaseVarIndex ], ExtraTaskSettings.TaskDeviceValueDecimals[0]);
+              values += ";";
+              values += toString(UserVar[event->BaseVarIndex + 1], ExtraTaskSettings.TaskDeviceValueDecimals[1]);
+              values += ";";
+              values += toString(UserVar[event->BaseVarIndex + 2], ExtraTaskSettings.TaskDeviceValueDecimals[2]);
+              //// values.toCharArray(str, 80);
+              root[F("svalue")] =  values.c_str();
+              //// root[F("svalue")] =  str;
+              break;
+              */
+
             default:
               root[F("nvalue")] = 0;
               root[F("svalue")] = formatDomoticzSensorType(event);

@@ -112,6 +112,10 @@ boolean CPlugin_001(byte function, struct EventStruct *event, String& string)
               url += F("&svalue=");
               url += formatDomoticzSensorType(event);
               break;
+            case (SENSOR_TYPE_AIRQUALITY):
+              url += F("&nvalue=");
+              url += toString(UserVar[event->BaseVarIndex], ExtraTaskSettings.TaskDeviceValueDecimals[0]);
+              break;
           }
 
           // Add WiFi reception quality

@@ -272,6 +272,7 @@
 #define SENSOR_TYPE_DIMMER                 11
 #define SENSOR_TYPE_LONG                   20
 #define SENSOR_TYPE_WIND                   21
+#define SENSOR_TYPE_AIRQUALITY             65
 
 #define VALUE_SOURCE_SYSTEM                 1
 #define VALUE_SOURCE_SERIAL                 2
