@@ -107,6 +107,7 @@ String formatDomoticzSensorType(struct EventStruct *event) {
       values += formatUserVarDomoticz(0);  // Temperature
       values += formatUserVarDomoticz(0);  // Temperature Windchill
       break;
+    case SENSOR_TYPE_NVALUE:
     case SENSOR_TYPE_SWITCH:
     case SENSOR_TYPE_DIMMER:
       // Too specific for HTTP/MQTT
