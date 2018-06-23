@@ -105,6 +105,15 @@ boolean CPlugin_001(byte function, struct EventStruct *event, String& string)
             case SENSOR_TYPE_TEMP_BARO:
             case SENSOR_TYPE_TEMP_HUM_BARO:
             case SENSOR_TYPE_WIND:
+            case SENSOR_TYPE_NVALUE:
+             ///json.htm?type=command&param=udevice&idx=407&nvalue=[MHZ19#PPM]
+              url = F("/json.htm?type=command&param=udevice&idx=");
+              url += event->idx;
+              url += F("&nvalue=");
+              url += formatDomoticzSensorType(event);
+              url += UserVar[event->BaseVarIndex];
+              break;
+            
             default:
               url = F("/json.htm?type=command&param=udevice&idx=");
               url += event->idx;
