@@ -3,6 +3,9 @@
 //#######################################################################################################
 
 // author :jodur, 13-1-2018
+// updated: jos
+//   -- removed timer updates to avoid constand updates being send to domoticz during timerx
+// 
 
 // List of commands:
 // 1111 to join ESP8266 with Itho ventilation unit
