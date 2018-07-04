@@ -5,7 +5,19 @@
 // author :jodur, 13-1-2018
 // updated: jos
 //   -- removed timer updates to avoid constand updates being send to domoticz during timerx
-// 
+//
+/*  Wemos connection
+
+CC11xx pin	ESP pins	Description
+1 - VCC	      VCC	3v3
+2 - GND	      GND	Ground
+3 - MOSI	    13=D7	Data input to CC11xx
+4 - SCK	      14=D5	Clock pin
+5 - MISO/GDO1	12=D6	Data output from CC11xx / serial clock from CC11xx
+6 - GDO2	    04=D1*	output as a symbol of receiving or sending data
+7 - GDO0	  	output as a symbol of receiving or sending data
+8 - CSN	      15=D8	Chip select / (SPI_SS)
+*/
 
 // List of commands:
 // 1111 to join ESP8266 with Itho ventilation unit
