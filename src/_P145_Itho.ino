@@ -79,6 +79,7 @@ bool PLUGIN_145_ITHOhasPacket = false;
 Ticker PLUGIN_145_ITHOticker;
 int PLUGIN_145_State = 1; // after startup it is assumed that the fan is running low
 int PLUGIN_145_OldState = 1;
+int PLUGIN_145_BeforeTimerState = 1;
 int PLUGIN_145_Timer = 0;
 int PLUGIN_145_LastIDindex = 0;
 int PLUGIN_145_OldLastIDindex = 0;
@@ -174,7 +175,11 @@ boolean Plugin_145(byte function, struct EventStruct *event, String &string)
 		//if timer has elapsed set Fan state to low
 		if ((PLUGIN_145_State >= 10) && (PLUGIN_145_Timer <= 0))
 		{
-			PLUGIN_145_State = 1;
+			String log = F("Reset speed back to:");
+			log += PLUGIN_145_BeforeTimerState;
+			log += F(" after timer.");
+			addLog(LOG_LEVEL_INFO, log);
+			PLUGIN_145_State = PLUGIN_145_BeforeTimerState;
 			PLUGIN_145_Timer = 0;
 		}
 
@@ -288,6 +293,7 @@ boolean Plugin_145(byte function, struct EventStruct *event, String &string)
 				PLUGIN_145_rf.sendCommand(IthoTimer1);
 				addLog(LOG_LEVEL_INFO, F("Sent command for 'timer 1' to Itho unit"));
 				printWebString += F("Sent command for 'timer 1' to Itho unit");
+				PLUGIN_145_BeforeTimerState = PLUGIN_145_State;
 				PLUGIN_145_State = 13;
 				PLUGIN_145_Timer = PLUGIN_145_Time1;
 				PLUGIN_145_LastIDindex = 0;
@@ -299,6 +305,7 @@ boolean Plugin_145(byte function, struct EventStruct *event, String &string)
 				PLUGIN_145_rf.sendCommand(IthoTimer2);
 				addLog(LOG_LEVEL_INFO, F("Sent command for 'timer 2' to Itho unit"));
 				printWebString += F("Sent command for 'timer 2' to Itho unit");
+				PLUGIN_145_BeforeTimerState = PLUGIN_145_State;
 				PLUGIN_145_State = 23;
 				PLUGIN_145_Timer = PLUGIN_145_Time2;
 				PLUGIN_145_LastIDindex = 0;
@@ -310,6 +317,7 @@ boolean Plugin_145(byte function, struct EventStruct *event, String &string)
 				PLUGIN_145_rf.sendCommand(IthoTimer3);
 				addLog(LOG_LEVEL_INFO, F("Sent command for 'timer 3' to Itho unit"));
 				printWebString += F("Sent command for 'timer 3' to Itho unit");
+				PLUGIN_145_BeforeTimerState = PLUGIN_145_State;
 				PLUGIN_145_State = 33;
 				PLUGIN_145_Timer = PLUGIN_145_Time3;
 				PLUGIN_145_LastIDindex = 0;
