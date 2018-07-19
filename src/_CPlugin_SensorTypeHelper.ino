@@ -7,6 +7,7 @@ byte getValueCountFromSensorType(byte sensorType)
   switch (sensorType)
   {
     case SENSOR_TYPE_SINGLE:                      // single value sensor, used for Dallas, BH1750, etc
+    case SENSOR_TYPE_NVALUE:                      // single nvalue sensor, used for Dallas, BH1750, etc
     case SENSOR_TYPE_SWITCH:
     case SENSOR_TYPE_DIMMER:
       return 1;

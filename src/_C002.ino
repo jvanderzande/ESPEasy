@@ -168,6 +168,7 @@ boolean CPlugin_002(byte function, struct EventStruct *event, String& string)
               break;
 
             case SENSOR_TYPE_SINGLE:
+            case SENSOR_TYPE_NVALUE:
             case SENSOR_TYPE_LONG:
             case SENSOR_TYPE_DUAL:
             case SENSOR_TYPE_TRIPLE:
