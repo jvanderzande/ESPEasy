@@ -95,7 +95,14 @@ boolean CPlugin_001(byte function, struct EventStruct *event, String& string)
                 url += UserVar[event->BaseVarIndex];
               }
               break;
-
+            case SENSOR_TYPE_NVALUE:
+             ///json.htm?type=command&param=udevice&idx=407&nvalue=[MHZ19#PPM]
+              url = F("/json.htm?type=command&param=udevice&idx=");
+              url += event->idx;
+              url += F("&nvalue=");
+              //url += formatDomoticzSensorType(event);
+              url += UserVar[event->BaseVarIndex];
+              break;
             case SENSOR_TYPE_SINGLE:
             case SENSOR_TYPE_LONG:
             case SENSOR_TYPE_DUAL:
@@ -105,15 +112,6 @@ boolean CPlugin_001(byte function, struct EventStruct *event, String& string)
             case SENSOR_TYPE_TEMP_BARO:
             case SENSOR_TYPE_TEMP_HUM_BARO:
             case SENSOR_TYPE_WIND:
-            case SENSOR_TYPE_NVALUE:
-             ///json.htm?type=command&param=udevice&idx=407&nvalue=[MHZ19#PPM]
-              url = F("/json.htm?type=command&param=udevice&idx=");
-              url += event->idx;
-              url += F("&nvalue=");
-              url += formatDomoticzSensorType(event);
-              url += UserVar[event->BaseVarIndex];
-              break;
-            
             default:
               url = F("/json.htm?type=command&param=udevice&idx=");
               url += event->idx;
@@ -130,6 +128,9 @@ boolean CPlugin_001(byte function, struct EventStruct *event, String& string)
             url += F("&battery=");
             url += mapVccToDomoticz();
           #endif
+          // added for testing -------------------
+          addLog(LOG_LEVEL_DEBUG, url);
+          // -------------------------------------
 
           // This will send the request to the server
           String request = F("GET ");
